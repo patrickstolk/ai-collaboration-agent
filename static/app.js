@@ -115,7 +115,11 @@ async function refreshSystemStatus() {
       const [state, title, detail] = providerState(result);
       setServiceStatus(prefix, state, title, detail);
     }
-    setServiceStatus("extension", "unknown", "Niet gemeten", "Houd de browser open en controleer of de extensie actief is. Heartbeat wordt nog niet gerapporteerd.");
+    const ext = data.browser_extension || {};
+    const extOnline = ext.status === "online";
+    setServiceStatus("extension", extOnline ? "ok" : "unknown", extOnline ? "Verbonden" : "Niet verbonden", ext.description || "Geen heartbeat ontvangen.");
+    if (extOnline && ext.last_seen) $("extensionStatusDetail").textContent += " Laatste signaal: " + formatDate(ext.last_seen) + ".";
+
     $("statusCheckedAt").textContent = "Gecontroleerd " + formatDate(data.checked_at);
   } catch (error) {
     setServiceStatus("server", "bad", "Niet bereikbaar", error.message || "Statuscontrole mislukt");
