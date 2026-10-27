@@ -60,7 +60,7 @@ h2{font-family:Manrope,sans-serif;font-size:19px;letter-spacing:-.45px;margin:5p
 .status-heading{align-items:center;margin-bottom:17px}
 .status-controls{display:flex;align-items:center;gap:12px}
 .status-controls>span{font-size:10px;color:#8190ac;white-space:nowrap}
-.status-controls .button{font-size:11px;padding:8px 10px}
+.status-controls .button{font-size:11px;padding:8px 10px}.status-controls{flex-wrap:wrap}.status-controls button:disabled{opacity:.55;cursor:wait}
 .status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
 .service-status{min-width:0;padding:14px;border:1px solid #2a3650;border-radius:12px;background:#10182b}
 .service-status-top{display:flex;align-items:center;justify-content:space-between;gap:9px}
