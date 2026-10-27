@@ -56,6 +56,27 @@ h2{font-family:Manrope,sans-serif;font-size:19px;letter-spacing:-.45px;margin:5p
 .icon-violet{color:#c2b8ff;background:#8876ff21}.icon-blue{color:#8bb7ff;background:#4e91ff20}.icon-green{color:#6ee7b7;background:#40d5a21b}.icon-red{color:#ff9ba5;background:#ff73841b}
 .stat-value{font-family:Manrope,sans-serif;font-weight:800;font-size:30px;letter-spacing:-1px;margin:11px 0 0}
 .stat-foot{font-size:11px;color:#8e9bb5;margin-top:1px}
+.status-panel{margin-bottom:20px}
+.status-heading{align-items:center;margin-bottom:17px}
+.status-controls{display:flex;align-items:center;gap:12px}
+.status-controls>span{font-size:10px;color:#8190ac;white-space:nowrap}
+.status-controls .button{font-size:11px;padding:8px 10px}
+.status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.service-status{min-width:0;padding:14px;border:1px solid #2a3650;border-radius:12px;background:#10182b}
+.service-status-top{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.service-name{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}
+.service-dot{width:8px;height:8px;flex-shrink:0;border-radius:50%;background:#8a95ab;box-shadow:0 0 0 4px #8a95ab1c}
+.service-dot.ok{background:#58d6a5;box-shadow:0 0 0 4px #58d6a51a}
+.service-dot.warn{background:#f5c56b;box-shadow:0 0 0 4px #f5c56b1a}
+.service-dot.bad{background:#ff7c8b;box-shadow:0 0 0 4px #ff7c8b1a}
+.service-dot.unknown{background:#8a95ab}
+.status-value{font-size:10px;font-weight:700;color:#b8c4db;text-align:right}
+.service-status:has(.service-dot.ok) .status-value{color:var(--green)}
+.service-status:has(.service-dot.warn) .status-value{color:#f5c56b}
+.service-status:has(.service-dot.bad) .status-value{color:var(--red)}
+.service-status p{font-size:11px;color:#8e9bb5;line-height:1.55;margin:10px 0 0;overflow-wrap:anywhere}
+.service-status a{display:inline-block;font-size:10px;color:#bcb1ff;margin-top:9px}
+.status-disclaimer{font-size:10px;color:#7f8da8;line-height:1.6;margin:14px 2px 0}
 .workspace-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(310px,.85fr);gap:18px;margin-bottom:20px;align-items:stretch}
 .panel{padding:22px;min-width:0}
 .panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:21px}
@@ -115,6 +136,6 @@ select{cursor:pointer;min-height:43px}
 .toast{position:fixed;right:24px;bottom:24px;z-index:20;max-width:min(420px,calc(100vw - 32px));padding:13px 16px;border:1px solid #465478;background:#1a2540;color:#f4f6ff;border-radius:12px;box-shadow:0 15px 45px #0006;font-size:12px}
 footer{display:flex;justify-content:space-between;gap:12px;color:#687795;font-size:10px;padding:8px 2px 14px}
 .footer-dot{padding:0 5px;color:#a397ff}
-@media(max-width:1150px){.main-content{padding:28px 24px 18px}.sidebar{width:218px}.main-content{margin-left:218px}.workspace-grid{grid-template-columns:minmax(0,1fr)}.agents-panel{display:grid;grid-template-columns:1fr 1fr;column-gap:12px}.agents-panel .panel-heading,.agents-panel .workflow-title,.agents-panel .workflow-step,.agents-panel .extension-warning{grid-column:1/-1}.agents-panel .agent-card{margin-bottom:0}.agents-panel .workflow-title{margin-top:20px}}
-@media(max-width:760px){.sidebar{position:relative;width:auto;inset:auto;padding:15px 17px;border-right:0;border-bottom:1px solid #202a40}.brand{padding:0 3px 14px}.side-label,.nav-item,.sidebar-bottom{display:none}.main-content{margin-left:0;padding:23px 15px 15px}.topbar{align-items:flex-start}.topbar .button{padding:9px 10px;font-size:11px}.topbar h1{font-size:27px}.subtitle{font-size:12px}.notice-card{align-items:flex-start;flex-wrap:wrap;padding:14px}.notice-copy{flex:1 1 calc(100% - 60px)}.text-link{margin-left:58px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat-card{padding:14px}.stat-value{font-size:26px}.panel{padding:17px;border-radius:15px}.workspace-grid{gap:13px}.agents-panel{display:block}.agents-panel .agent-card{margin-bottom:9px}.task-heading{align-items:flex-start;flex-direction:column}.task-toolbar{width:100%;justify-content:space-between}.task-row{grid-template-columns:1fr}.task-actions{justify-content:flex-start}.task-actions .small-button{flex:1}.task-meta{gap:6px}.task-prompt{font-size:12px}footer{flex-direction:column;gap:3px}}
+@media(max-width:1150px){.status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.status-heading{align-items:flex-start;flex-direction:column}.status-controls{width:100%;justify-content:space-between}.main-content{padding:28px 24px 18px}.sidebar{width:218px}.main-content{margin-left:218px}.workspace-grid{grid-template-columns:minmax(0,1fr)}.agents-panel{display:grid;grid-template-columns:1fr 1fr;column-gap:12px}.agents-panel .panel-heading,.agents-panel .workflow-title,.agents-panel .workflow-step,.agents-panel .extension-warning{grid-column:1/-1}.agents-panel .agent-card{margin-bottom:0}.agents-panel .workflow-title{margin-top:20px}}
+@media(max-width:760px){.status-grid{grid-template-columns:1fr}.status-controls{align-items:flex-start;flex-direction:column}.status-controls>span{white-space:normal}.sidebar{position:relative;width:auto;inset:auto;padding:15px 17px;border-right:0;border-bottom:1px solid #202a40}.brand{padding:0 3px 14px}.side-label,.nav-item,.sidebar-bottom{display:none}.main-content{margin-left:0;padding:23px 15px 15px}.topbar{align-items:flex-start}.topbar .button{padding:9px 10px;font-size:11px}.topbar h1{font-size:27px}.subtitle{font-size:12px}.notice-card{align-items:flex-start;flex-wrap:wrap;padding:14px}.notice-copy{flex:1 1 calc(100% - 60px)}.text-link{margin-left:58px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat-card{padding:14px}.stat-value{font-size:26px}.panel{padding:17px;border-radius:15px}.workspace-grid{gap:13px}.agents-panel{display:block}.agents-panel .agent-card{margin-bottom:9px}.task-heading{align-items:flex-start;flex-direction:column}.task-toolbar{width:100%;justify-content:space-between}.task-row{grid-template-columns:1fr}.task-actions{justify-content:flex-start}.task-actions .small-button{flex:1}.task-meta{gap:6px}.task-prompt{font-size:12px}footer{flex-direction:column;gap:3px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
