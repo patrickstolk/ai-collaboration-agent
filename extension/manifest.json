@@ -1,14 +1,45 @@
 {
   "manifest_version": 3,
   "name": "AI Collaboration Agent - Local Browser",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Laat de lokale Edge/Chrome-tabbladen Claude en ChatGPT uitvoeren voor je dashboard.",
-  "permissions": ["storage", "tabs", "alarms", "scripting"],
-  "host_permissions": ["https://claude.ai/*", "https://chatgpt.com/*", "http://*/*", "https://*/*"],
-  "background": {"service_worker": "background.js"},
-  "action": {"default_title": "AI Collaboration Agent", "default_popup": "popup.html"},
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://claude.ai/*",
+    "https://chatgpt.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "AI Collaboration Agent",
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
-    {"matches": ["https://claude.ai/*"], "js": ["content.js"], "run_at": "document_idle"},
-    {"matches": ["https://chatgpt.com/*"], "js": ["content.js"], "run_at": "document_idle"}
+    {
+      "matches": [
+        "https://claude.ai/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
   ]
 }
