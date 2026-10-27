@@ -78,6 +78,11 @@ async def detail(tid):
 async def create(body:TaskIn):
  tid=str(uuid.uuid4());t={"id":tid,"prompt":body.prompt,"mode":body.mode,"status":"QUEUED","created_at":now(),"updated_at":now(),"claude_status":"QUEUED","chatgpt_status":"QUEUED","results":{},"result":None,"error":None,"events":[],"next_provider":"claude"}
  d=read_db();d["tasks"].append(t);write_db(d);await log(tid,"Opdracht in wachtrij; lokale browserextensie voert deze uit.","user");return get_task(tid)
+@app.get("/api/extension/health")
+async def extension_health(x_agent_token:str|None=Header(default=None)):
+ auth(x_agent_token)
+ return {"status":"ok","connected":True,"message":"Token geldig; extensie kan de agent bereiken."}
+
 @app.get("/api/extension/next")
 async def extension_next(x_agent_token:str|None=Header(default=None)):
  auth(x_agent_token)
