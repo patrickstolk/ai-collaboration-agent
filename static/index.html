@@ -1,1 +1,99 @@
-<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Collaboration Agent</title><link rel="stylesheet" href="/static/style.css"></head><body><header><h1>AI Collaboration Agent</h1><p>Lokale Edge/Chrome-browser · Claude.ai + ChatGPT.com · geen API-sleutels</p></header><main><p class="notice"><b>Lokale browsermodus:</b> installeer de browserextensie uit de GitHub-repository op je pc, vul dashboard-URL en AGENT_TOKEN in en laat Edge openstaan. noVNC is niet meer nodig.</p><article><h2>Agentstatus</h2><p id="agentStatus">Dashboard actief. Wacht op de lokale browserextensie.</p><p><a href="https://github.com/patrickstolk/ai-collaboration-agent/tree/main/extension" target="_blank" rel="noreferrer">Bekijk browserextensie en installatie-instructies</a></p></article><article><h2>Nieuwe opdracht</h2><form id="taskForm"><textarea id="prompt" required minlength="3" placeholder="Wat moeten Claude en ChatGPT doen?"></textarea><select id="mode"><option value="automatic">Automatisch — beide antwoorden en synthese</option><option value="parallel">Parallel — beide antwoorden</option><option value="claude_first">Claude eerst, ChatGPT controleert</option><option value="chatgpt_first">ChatGPT eerst, Claude controleert</option></select><button id="submitBtn">Opdracht starten</button><label><input type="checkbox" id="notify" checked> Browsermeldingen</label></form></article><article><h2>Opdrachten en resultaten</h2><button id="refreshBtn">Vernieuwen</button><div id="tasksList">Nog geen opdrachten.</div></article><article id="resultPanel" class="hidden"><h2 id="resultTitle">Resultaat</h2><pre id="resultText"></pre><button id="closeResult">Sluiten</button></article></main><div id="toast" class="hidden"></div><script src="/static/app.js"></script></body></html>
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>AI Collaboration Agent</title>
+  <link rel="stylesheet" href="/static/style.css?v=2">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="AI Collaboration Agent home">
+        <span class="brand-mark">✳</span>
+        <span><strong>AI Collaboration</strong><small>AGENT WORKSPACE</small></span>
+      </a>
+      <div class="side-label">WERKRUIMTE</div>
+      <a class="nav-item active" href="#overview"><span>▦</span> Overzicht</a>
+      <a class="nav-item" href="#new-task"><span>＋</span> Nieuwe opdracht</a>
+      <a class="nav-item" href="#tasks"><span>☷</span> Opdrachten</a>
+      <div class="sidebar-bottom">
+        <div class="connection-indicator"><span class="pulse-dot"></span><span><b id="healthLabel">Server controleren</b><small id="healthSub">Lokale verbinding</small></span></div>
+        <p>Privé gehouden op je eigen server. Geen API-sleutels nodig.</p>
+      </div>
+    </aside>
+
+    <main class="main-content" id="overview">
+      <header class="topbar">
+        <div><div class="eyebrow">AI WORKSPACE / DASHBOARD</div><h1>Jouw AI-team, op één plek.</h1><p class="subtitle">Laat Claude en ChatGPT samenwerken aan één opdracht.</p></div>
+        <button class="button button-quiet" id="refreshBtn" type="button"><span class="refresh-icon">↻</span> Vernieuwen</button>
+      </header>
+
+      <section class="notice-card">
+        <div class="notice-icon">⌘</div>
+        <div class="notice-copy"><strong>Verbind je lokale browser</strong><p>Open Claude.ai en ChatGPT.com in Edge of Chrome en activeer de browserextensie. De website stuurt opdrachten door; je bestaande browserlogin wordt gebruikt.</p></div>
+        <a class="text-link" href="https://github.com/patrickstolk/ai-collaboration-agent/tree/main/extension" target="_blank" rel="noreferrer">Extensie installeren <span>↗</span></a>
+      </section>
+
+      <section class="stats-grid" aria-label="Overzicht">
+        <article class="stat-card"><div class="stat-top"><span class="stat-label">TOTAAL</span><span class="stat-icon icon-violet">▤</span></div><div class="stat-value" id="totalCount">—</div><div class="stat-foot">Opdrachten aangemaakt</div></article>
+        <article class="stat-card"><div class="stat-top"><span class="stat-label">ACTIEF</span><span class="stat-icon icon-blue">◷</span></div><div class="stat-value" id="activeCount">—</div><div class="stat-foot">Wachtrij of in uitvoering</div></article>
+        <article class="stat-card"><div class="stat-top"><span class="stat-label">AFGEROND</span><span class="stat-icon icon-green">✓</span></div><div class="stat-value" id="completedCount">—</div><div class="stat-foot">Met een eindresultaat</div></article>
+        <article class="stat-card"><div class="stat-top"><span class="stat-label">MISLUKT</span><span class="stat-icon icon-red">!</span></div><div class="stat-value" id="failedCount">—</div><div class="stat-foot">Opdrachten met een fout</div></article>
+      </section>
+
+      <section class="workspace-grid">
+        <article class="panel composer-panel" id="new-task">
+          <div class="panel-heading"><div><div class="eyebrow">START SAMENWERKING</div><h2>Nieuwe opdracht</h2><p>Beschrijf het doel. De agents werken vanuit je ingelogde browsertabbladen.</p></div><span class="step-number">01</span></div>
+          <form id="taskForm">
+            <label class="field-label" for="prompt">Wat wil je laten onderzoeken of maken?</label>
+            <textarea id="prompt" required minlength="3" maxlength="15000" placeholder="Bijv. analyseer deze oplossing, vergelijk de argumenten en geef een concreet advies…" rows="7"></textarea>
+            <div class="field-meta"><span>Wees duidelijk over doel en gewenste output.</span><span id="charCount">0 / 15000</span></div>
+            <label class="field-label" for="mode">Samenwerkingsmodus</label>
+            <select id="mode">
+              <option value="automatic">Automatisch — beide antwoorden + synthese</option>
+              <option value="parallel">Parallel — beide antwoorden vergelijken</option>
+              <option value="claude_first">Claude eerst — ChatGPT controleert</option>
+              <option value="chatgpt_first">ChatGPT eerst — Claude controleert</option>
+            </select>
+            <div class="mode-hint" id="modeHint">Claude en ChatGPT geven elk antwoord; daarna maakt ChatGPT een samengevoegd eindantwoord.</div>
+            <button class="button button-primary submit-button" id="submitBtn" type="submit"><span>✦</span> Opdracht starten <span class="button-arrow">→</span></button>
+            <p class="form-note"><span class="tiny-lock">▣</span> De opdracht wordt opgeslagen op je eigen server.</p>
+          </form>
+        </article>
+
+        <article class="panel agents-panel">
+          <div class="panel-heading"><div><div class="eyebrow">LOKALE BROWSER</div><h2>Jouw agents</h2><p>Werken via bestaande websessies, zonder API-koppeling.</p></div><span class="step-number">02</span></div>
+          <div class="agent-card">
+            <div class="agent-logo claude-logo">✳</div><div class="agent-info"><strong>Claude</strong><span>claude.ai</span></div><span class="agent-badge">Browser</span>
+          </div>
+          <div class="agent-card">
+            <div class="agent-logo chatgpt-logo">◎</div><div class="agent-info"><strong>ChatGPT</strong><span>chatgpt.com</span></div><span class="agent-badge">Browser</span>
+          </div>
+          <div class="workflow-title">ZO WERKT HET</div>
+          <div class="workflow-step"><span>1</span><div><b>Jij geeft de opdracht</b><small>Schrijf het doel en kies een modus.</small></div></div>
+          <div class="workflow-step"><span>2</span><div><b>Agents werken in je browser</b><small>De extensie verstuurt prompts en leest antwoorden.</small></div></div>
+          <div class="workflow-step"><span>3</span><div><b>Bekijk het resultaat</b><small>Volg de voortgang en open de resultaten hieronder.</small></div></div>
+          <div class="extension-warning"><span>ⓘ</span><p>Houd Edge of Chrome geopend, met beide websites ingelogd en de extensie actief.</p></div>
+        </article>
+      </section>
+
+      <section class="panel tasks-panel" id="tasks">
+        <div class="panel-heading task-heading"><div><div class="eyebrow">ACTIVITEIT</div><h2>Opdrachten</h2><p>Voortgang en resultaten van recente opdrachten.</p></div><div class="task-toolbar"><span id="lastUpdated">Nog niet bijgewerkt</span><select id="filterStatus" aria-label="Filter opdrachten"><option value="all">Alle statussen</option><option value="active">Actief</option><option value="COMPLETED">Afgerond</option><option value="FAILED">Mislukt</option></select></div></div>
+        <div id="tasksList" class="tasks-list"><div class="empty-state"><span class="empty-icon">☷</span><b>Opdrachten laden…</b><p>Een moment geduld.</p></div></div>
+      </section>
+
+      <section class="panel result-panel hidden" id="resultPanel">
+        <div class="panel-heading"><div><div class="eyebrow">OPDRACHTDETAILS</div><h2 id="resultTitle">Resultaat</h2><p id="resultMeta"></p></div><button class="button button-quiet" id="closeResult" type="button">Sluiten ×</button></div>
+        <div class="result-content" id="resultContent"></div>
+        <div class="result-actions"><button class="button button-secondary" id="copyResult" type="button">Kopieer resultaat</button></div>
+      </section>
+
+      <footer><span>AI Collaboration Agent <span class="footer-dot">·</span> Lokale browsermodus</span><span>Gebouwd voor je eigen omgeving</span></footer>
+    </main>
+  </div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="/static/app.js?v=2"></script>
+</body>
+</html>
