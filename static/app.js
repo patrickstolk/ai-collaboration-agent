@@ -130,6 +130,73 @@ async function refreshSystemStatus() {
     if (button) button.disabled = false;
   }
 }
+let functionalTestId = null;
+async function startFunctionalTest() {
+  const button = $("functionalTestBtn");
+  button.disabled = true;
+  button.textContent = "Test wordt gestart…";
+  try {
+    const task = await api("/api/tasks", {
+      method: "POST",
+      body: JSON.stringify({
+        prompt: "Dit is een automatische functietest van de AI Collaboration Agent. Antwoord uitsluitend met de tekst: TEST OK",
+        mode: "parallel"
+      })
+    });
+    functionalTestId = task.id;
+    toast("Functietest gestart. Houd Claude en ChatGPT open en ingelogd.");
+    $("tasks").scrollIntoView({behavior:"smooth",block:"start"});
+    await refresh(true);
+    pollFunctionalTest(task.id);
+  } catch (error) {
+    toast("Functietest kon niet starten: " + error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Test Claude + ChatGPT";
+  }
+}
+async function pollFunctionalTest(id) {
+  const deadline = Date.now() + 5 * 60 * 1000;
+  while (Date.now() < deadline && functionalTestId === id) {
+    try {
+      const task = await api("/api/tasks/" + encodeURIComponent(id));
+      const statuses = [
+        ["claude", task.claude_status, task.results && task.results.claude],
+        ["chatgpt", task.chatgpt_status, task.results && task.results.chatgpt]
+      ];
+      for (const [prefix, status, result] of statuses) {
+        if (status === "COMPLETED" && result) {
+          setServiceStatus(prefix, "ok", "Test geslaagd", "Echt antwoord ontvangen vanuit de browser.");
+        } else if (status === "FAILED") {
+          setServiceStatus(prefix, "bad", "Test mislukt", task.error || "Geen antwoord ontvangen.");
+        } else if (status === "RUNNING") {
+          setServiceStatus(prefix, "warn", "Test bezig…", "Opdracht wordt uitgevoerd in de browser.");
+        } else if (status === "QUEUED") {
+          setServiceStatus(prefix, "unknown", "Wacht op test", "De extensie pakt de testopdracht op.");
+        }
+      }
+      if (task.status === "COMPLETED") {
+        toast("Functietest afgerond. Controleer de statuskaarten en de taakresultaten.");
+        await refresh(true);
+        functionalTestId = null;
+        return;
+      }
+      if (task.status === "FAILED") {
+        toast("Functietest mislukt. Open de opdracht voor de foutmelding.", true);
+        await refresh(true);
+        functionalTestId = null;
+        return;
+      }
+    } catch (error) {
+      console.warn("Functieteststatus:", error.message);
+    }
+    await new Promise(resolve => setTimeout(resolve, 4000));
+  }
+  if (functionalTestId === id) {
+    toast("Functietest duurde langer dan 5 minuten. Controleer de taakdetails.", true);
+    functionalTestId = null;
+  }
+}
 async function refresh(silent = false) {
   if (refreshBusy) return;
   refreshBusy = true;
@@ -207,6 +274,7 @@ $("mode").addEventListener("change", () => {
 });
 $("refreshBtn").addEventListener("click", () => refresh());
 $("statusRefreshBtn").addEventListener("click", refreshSystemStatus);
+$("functionalTestBtn").addEventListener("click", startFunctionalTest);
 $("filterStatus").addEventListener("change", renderTasks);
 $("tasksList").addEventListener("click", event => {
   const button = event.target.closest("[data-detail]");
