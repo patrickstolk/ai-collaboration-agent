@@ -88,6 +88,44 @@ async function checkHealth() {
     $("healthSub").textContent = "Controleer de verbinding";
   }
 }
+function setServiceStatus(prefix, state, title, detail) {
+  const dot = $(prefix + "StatusDot");
+  if (!dot) return;
+  dot.className = "service-dot " + state;
+  $(prefix + "StatusText").textContent = title;
+  $(prefix + "StatusDetail").textContent = detail || "";
+}
+function providerState(provider) {
+  if (!provider || !provider.ok) return ["unknown", "Onbekend", "Statuspagina niet bereikbaar."];
+  const indicator = String(provider.indicator || "unknown").toLowerCase();
+  if (indicator === "none") return ["ok", "Operationeel", provider.description || "Geen bekende storing."];
+  if (indicator === "minor") return ["warn", "Kleine storing", provider.description || "Er is een beperkte storing gemeld."];
+  if (indicator === "major") return ["bad", "Grote storing", provider.description || "Er is een grote storing gemeld."];
+  if (indicator === "critical") return ["bad", "Kritieke storing", provider.description || "Er is een kritieke storing gemeld."];
+  return ["warn", provider.description || "Status onbekend", "Statusindicator: " + indicator];
+}
+async function refreshSystemStatus() {
+  const button = $("statusRefreshBtn");
+  if (button) button.disabled = true;
+  try {
+    const data = await api("/api/status");
+    setServiceStatus("server", "ok", "Online", "Agent API bereikbaar");
+    for (const [key, prefix] of [["claude", "claude"], ["chatgpt", "chatgpt"]]) {
+      const result = data.providers && data.providers[key];
+      const [state, title, detail] = providerState(result);
+      setServiceStatus(prefix, state, title, detail);
+    }
+    setServiceStatus("extension", "unknown", "Niet gemeten", "Houd de browser open en controleer of de extensie actief is. Heartbeat wordt nog niet gerapporteerd.");
+    $("statusCheckedAt").textContent = "Gecontroleerd " + formatDate(data.checked_at);
+  } catch (error) {
+    setServiceStatus("server", "bad", "Niet bereikbaar", error.message || "Statuscontrole mislukt");
+    setServiceStatus("claude", "unknown", "Onbekend", "Kan status niet ophalen.");
+    setServiceStatus("chatgpt", "unknown", "Onbekend", "Kan status niet ophalen.");
+    $("statusCheckedAt").textContent = "Controle mislukt";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
 async function refresh(silent = false) {
   if (refreshBusy) return;
   refreshBusy = true;
@@ -164,6 +202,7 @@ $("mode").addEventListener("change", () => {
   $("modeHint").textContent = hints[$("mode").value];
 });
 $("refreshBtn").addEventListener("click", () => refresh());
+$("statusRefreshBtn").addEventListener("click", refreshSystemStatus);
 $("filterStatus").addEventListener("change", renderTasks);
 $("tasksList").addEventListener("click", event => {
   const button = event.target.closest("[data-detail]");
@@ -181,5 +220,7 @@ $("copyResult").addEventListener("click", async () => {
   }
 });
 refresh();
+refreshSystemStatus();
 setInterval(() => refresh(true), 10000);
+setInterval(refreshSystemStatus, 60000);
 setInterval(checkHealth, 30000);
