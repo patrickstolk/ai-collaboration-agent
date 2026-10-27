@@ -5,14 +5,11 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8787}:8000"
-      # Browserbeeld bevat ingelogde sessies: alleen LAN/VPN, niet publiek openzetten.
-      - "${VNC_PORT:-6080}:6080"
     environment:
       DB_PATH: /data/browser-agent.json
-      ANSWER_TIMEOUT_SECONDS: ${ANSWER_TIMEOUT_SECONDS:-240}
+      AGENT_TOKEN: ${AGENT_TOKEN:-change-this-token-before-use}
     volumes:
       - agent_data:/data
-    shm_size: "1gb"
     networks:
       - ai-agent
     labels:
