@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b1020">
   <title>AI Collaboration Agent</title>
-  <link rel="stylesheet" href="/static/style.css?v=3">
+  <link rel="stylesheet" href="/static/style.css?v=4">
 </head>
 <body>
   <div class="app-shell">
@@ -44,14 +44,14 @@
       </section>
 
       <section class="panel status-panel" id="system-status">
-        <div class="panel-heading status-heading"><div><div class="eyebrow">SYSTEEMCONTROLE</div><h2>Live status</h2><p>Controleert de agent-server en de officiële statuspagina's van Claude en OpenAI.</p></div><div class="status-controls"><span id="statusCheckedAt">Nog niet gecontroleerd</span><button class="button button-quiet" id="statusRefreshBtn" type="button">Nu controleren ↻</button></div></div>
+        <div class="panel-heading status-heading"><div><div class="eyebrow">SYSTEEMCONTROLE</div><h2>Live status</h2><p>Controleert de agent-server en de officiële statuspagina's van Claude en OpenAI.</p></div><div class="status-controls"><span id="statusCheckedAt">Nog niet gecontroleerd</span><button class="button button-quiet" id="statusRefreshBtn" type="button">Nu controleren ↻</button><button class="button" id="functionalTestBtn" type="button">Test Claude + ChatGPT</button></div></div>
         <div class="status-grid">
           <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="serverStatusDot"></span>Agent-server</span><span class="status-value" id="serverStatusText">Controleren…</span></div><p id="serverStatusDetail">Lokale API controleren.</p></article>
           <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="claudeStatusDot"></span>Claude</span><span class="status-value" id="claudeStatusText">Controleren…</span></div><p id="claudeStatusDetail">Officiële status van claude.ai.</p><a href="https://status.claude.com/" target="_blank" rel="noreferrer">Open statuspagina ↗</a></article>
           <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="chatgptStatusDot"></span>ChatGPT</span><span class="status-value" id="chatgptStatusText">Controleren…</span></div><p id="chatgptStatusDetail">Officiële status van OpenAI.</p><a href="https://status.openai.com/" target="_blank" rel="noreferrer">Open statuspagina ↗</a></article>
           <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="extensionStatusDot"></span>Browserextensie</span><span class="status-value" id="extensionStatusText">Niet gemeten</span></div><p id="extensionStatusDetail">De server kan de extensie nog niet rechtstreeks controleren.</p></article>
         </div>
-        <p class="status-disclaimer">Let op: de officiële status toont storingen bij de aanbieder, niet of jouw persoonlijke browsersessie is ingelogd of werkt. De extensiestatus blijft onbekend totdat heartbeat-controle is ingebouwd.</p>
+        <p class="status-disclaimer">De officiële status controleert storingen bij de aanbieder. Klik op “Test Claude + ChatGPT” om via je ingelogde browsertabbladen een echte testopdracht uit te voeren.</p>
       </section>
 
       <section class="workspace-grid">
@@ -105,6 +105,6 @@
     </main>
   </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script src="/static/app.js?v=4"></script>
+  <script src="/static/app.js?v=5"></script>
 </body>
 </html>
