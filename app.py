@@ -1,4 +1,4 @@
-import os,asyncio,json,uuid,secrets
+import os,asyncio,json,uuid,secrets,urllib.request
 from datetime import datetime,timezone
 from typing import Literal
 from fastapi import FastAPI,HTTPException,WebSocket,WebSocketDisconnect,Header
@@ -50,6 +50,23 @@ async def home():
  with open("static/index.html",encoding="utf-8") as f:return f.read()
 @app.get("/api/health")
 async def health():return {"status":"ok","mode":"local-browser-extension"}
+
+def fetch_provider_status(url):
+ try:
+  req=urllib.request.Request(url,headers={"User-Agent":"AI-Collaboration-Agent status-check"})
+  with urllib.request.urlopen(req,timeout=5) as response:
+   payload=json.loads(response.read().decode("utf-8"))
+  status=payload.get("status",{})
+  return {"ok":True,"indicator":status.get("indicator","unknown"),"description":status.get("description","Status onbekend"),"updated_at":payload.get("page",{}).get("updated_at")}
+ except Exception as exc:
+  return {"ok":False,"indicator":"unknown","description":"Statuspagina niet bereikbaar","error":str(exc)}
+
+@app.get("/api/status")
+async def status():
+ claude,chatgpt=await asyncio.gather(
+  asyncio.to_thread(fetch_provider_status,"https://status.claude.com/api/v2/status.json"),
+  asyncio.to_thread(fetch_provider_status,"https://status.openai.com/api/v2/status.json"))
+ return {"checked_at":now(),"server":{"status":"ok","description":"Agent API bereikbaar"},"providers":{"claude":claude,"chatgpt":chatgpt},"browser_extension":{"status":"unknown","description":"De browserextensie meldt momenteel geen heartbeat; controleer de extensie en ingelogde tabbladen."}}
 @app.get("/api/tasks")
 async def tasks():return sorted(read_db()["tasks"],key=lambda t:t["created_at"],reverse=True)[:100]
 @app.get("/api/tasks/{tid}")
