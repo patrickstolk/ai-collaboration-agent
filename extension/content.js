@@ -21,13 +21,11 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(message.type!==
   const values=[...document.querySelectorAll(sel)].filter(e=>e.offsetParent!==null&&!e.closest('[data-testid*="user"],[data-testid*="human"]')).map(e=>e.innerText.trim()).filter(Boolean);
   if(values.length)return claude?[...new Set(values)]:values;
  }
- if(claude){
-  // Claude's DOM selectors change periodically; fall back to visible paragraph text in the conversation.
-  const paragraphs=[...document.querySelectorAll('main p, main [dir="auto"]')]
-   .filter(e=>e.offsetParent!==null&&!e.closest('form,[data-testid*="user"],[data-testid*="human"]'))
-   .map(e=>e.innerText.trim())
-   .filter(t=>t&&t.length<50000);
-  if(paragraphs.length)return [...new Set(paragraphs)];
- }
+ // Fallback for changing site markup: inspect visible conversation text, excluding the prompt form and user messages.
+ const fallback=[...document.querySelectorAll('main [data-message-author-role="assistant"], main p, main [dir="auto"]')]
+  .filter(e=>e.offsetParent!==null&&!e.closest('form,[contenteditable="true"],textarea,[data-testid*="user"],[data-testid*="human"]'))
+  .map(e=>e.innerText.trim())
+  .filter(t=>t&&t.length<50000);
+ if(fallback.length)return [...new Set(fallback)];
  return [];
 }
