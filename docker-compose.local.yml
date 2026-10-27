@@ -1,0 +1,16 @@
+services:
+  ai-collaboration-agent:
+    build: .
+    container_name: ai-collaboration-agent
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8787}:8000"
+      - "${VNC_PORT:-6080}:6080"
+    environment:
+      DB_PATH: /data/browser-agent.json
+      ANSWER_TIMEOUT_SECONDS: ${ANSWER_TIMEOUT_SECONDS:-240}
+    volumes:
+      - agent_data:/data
+    shm_size: "1gb"
+volumes:
+  agent_data:
