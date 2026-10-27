@@ -12,6 +12,7 @@ AGENT_TOKEN=os.getenv("AGENT_TOKEN","please-change-this-token")
 app=FastAPI(title="AI Collaboration Agent")
 app.mount("/static",StaticFiles(directory="static"),name="static")
 clients=set()
+last_extension_heartbeat=None
 def now(): return datetime.now(timezone.utc).isoformat()
 def read_db():
  os.makedirs(os.path.dirname(DB) or ".",exist_ok=True)
@@ -66,7 +67,9 @@ async def status():
  claude,chatgpt=await asyncio.gather(
   asyncio.to_thread(fetch_provider_status,"https://status.claude.com/api/v2/status.json"),
   asyncio.to_thread(fetch_provider_status,"https://status.openai.com/api/v2/status.json"))
- return {"checked_at":now(),"server":{"status":"ok","description":"Agent API bereikbaar"},"providers":{"claude":claude,"chatgpt":chatgpt},"browser_extension":{"status":"unknown","description":"De browserextensie meldt momenteel geen heartbeat; controleer de extensie en ingelogde tabbladen."}}
+ age=(datetime.now(timezone.utc)-datetime.fromisoformat(last_extension_heartbeat)).total_seconds() if last_extension_heartbeat else None
+ extension_online=age is not None and age < 90
+ return {"checked_at":now(),"server":{"status":"ok","description":"Agent API bereikbaar"},"providers":{"claude":claude,"chatgpt":chatgpt},"browser_extension":{"status":"online" if extension_online else "offline","description":"Heartbeat ontvangen; extensie kan de server bereiken." if extension_online else "Geen recente heartbeat. Open de extensie en klik op Opslaan en verbinden.","last_seen":last_extension_heartbeat,"age_seconds":int(age) if age is not None else None}}
 @app.get("/api/tasks")
 async def tasks():return sorted(read_db()["tasks"],key=lambda t:t["created_at"],reverse=True)[:100]
 @app.get("/api/tasks/{tid}")
@@ -82,6 +85,13 @@ async def create(body:TaskIn):
 async def extension_health(x_agent_token:str|None=Header(default=None)):
  auth(x_agent_token)
  return {"status":"ok","connected":True,"message":"Token geldig; extensie kan de agent bereiken."}
+
+@app.post("/api/extension/heartbeat")
+async def extension_heartbeat(x_agent_token:str|None=Header(default=None)):
+ global last_extension_heartbeat
+ auth(x_agent_token)
+ last_extension_heartbeat=now()
+ return {"status":"ok","last_seen":last_extension_heartbeat}
 
 @app.get("/api/extension/next")
 async def extension_next(x_agent_token:str|None=Header(default=None)):
