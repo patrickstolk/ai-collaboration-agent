@@ -1,0 +1,28 @@
+services:
+  ai-collaboration-agent:
+    image: ghcr.io/patrickstolk/ai-collaboration-agent:latest
+    container_name: ai-collaboration-agent
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8787}:8000"
+      # Browserbeeld bevat ingelogde sessies: alleen LAN/VPN, niet publiek openzetten.
+      - "${VNC_PORT:-6080}:6080"
+    environment:
+      DB_PATH: /data/browser-agent.json
+      ANSWER_TIMEOUT_SECONDS: ${ANSWER_TIMEOUT_SECONDS:-240}
+    volumes:
+      - agent_data:/data
+    shm_size: "1gb"
+    networks:
+      - ai-agent
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai-collaboration.rule=Host(`${APP_DOMAIN:-ai-agent.example.com}`)"
+      - "traefik.http.routers.ai-collaboration.entrypoints=https"
+      - "traefik.http.routers.ai-collaboration.tls=true"
+      - "traefik.http.services.ai-collaboration.loadbalancer.server.port=8000"
+volumes:
+  agent_data:
+networks:
+  ai-agent:
+    driver: bridge
