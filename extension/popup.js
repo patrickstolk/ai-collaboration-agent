@@ -1,3 +1,4 @@
+const manifestVersion=chrome.runtime.getManifest().version;document.getElementById("extensionVersion").textContent="v"+manifestVersion;
 const $=id=>document.getElementById(id);
 const DEFAULT_URL="http://10.170.50.26:8787";
 function showStatus(message,ok=false){$("status").textContent=message;$("status").style.color=ok?"#16794b":"#b42318";}
