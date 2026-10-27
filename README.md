@@ -1,23 +1,28 @@
-# AI Collaboration Agent — Portainer / GHCR
+# AI Collaboration Agent — Local browser edition
 
-Browser-based collaboration between Claude.ai and ChatGPT.com without API keys. You log in manually using the visible browser desktop.
+The dashboard runs on Unraid/Portainer. Claude.ai and ChatGPT.com run in your own local Edge/Chrome browser, controlled by an unpacked browser extension. No API keys and no noVNC desktop are needed.
 
-## Publish
-The GitHub Actions workflow builds and publishes `ghcr.io/patrickstolk/ai-collaboration-agent:latest` on pushes to the default branch. After the first successful workflow, open GitHub **Packages** and make the container package **Public** if Portainer should pull it without registry credentials.
+## 1. Portainer
+1. Set the environment variable `AGENT_TOKEN` to a long random secret in the Portainer stack. Do not keep the example value.
+2. Deploy/redeploy the stack from this repository, branch `main`, compose path `docker-compose.yml`.
+3. Open the dashboard at `http://SERVER-IP:8787` (or your configured Traefik URL).
 
-## Portainer
-1. Stacks → Add stack → Repository.
-2. Repository: https://github.com/patrickstolk/ai-collaboration-agent
-3. Branch: main; compose path: docker-compose.yml.
-4. Deploy.
+## 2. Install the extension in Edge
+1. Download the repository ZIP from GitHub and extract it on your PC.
+2. Open `edge://extensions`.
+3. Enable **Developer mode**.
+4. Choose **Load unpacked** and select the `extension` folder from the extracted repository.
+5. Click the extension icon. Enter the dashboard URL and the exact same `AGENT_TOKEN` value used in Portainer, then click **Opslaan en verbinden**.
+6. Click **Open Claude + ChatGPT** and sign in to both sites if needed.
 
-The included Traefik labels are examples. Set APP_DOMAIN and adapt the network and entrypoint to your actual Traefik setup. The compose publishes port 6080 for the browser desktop; do not expose it to the public internet.
+Chrome users can use `chrome://extensions` instead.
 
-## First login
-Open the dashboard on port 8787, click Browsers openen, then open http://SERVER-IP:6080/vnc.html?autoconnect=1&resize=scale. Log in manually to Claude and ChatGPT, then use Controleer sessie.
+## 3. Use it
+Open the dashboard, submit an instruction, and leave Edge running with the extension enabled. The extension polls the dashboard for tasks, sends prompts in the local website tabs, and posts the responses back. For browser notifications, allow notifications from the dashboard site if prompted.
 
-## Security
-- Port 6080 grants access to authenticated browser sessions. Restrict it to LAN/VPN.
-- Browser profiles and task history live in the agent_data Docker volume.
-- No API keys are required. Website UI automation can break when sites change; respect website terms and never bypass CAPTCHA or access controls.
-- Image build targets linux/amd64.
+## Security and limitations
+- The extension can interact with Claude and ChatGPT pages you are signed into. Keep the extension folder and token private.
+- Use a strong token and keep the dashboard behind LAN/VPN or your existing authentication. Do not expose it publicly without additional access controls.
+- Website DOM changes can break automation. If an input or send button is not detected, check the browser tab and extension console.
+- Respect website terms and do not bypass CAPTCHA or access controls.
+- The package image is built for linux/amd64.
