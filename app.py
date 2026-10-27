@@ -44,7 +44,7 @@ class TaskIn(BaseModel):
  mode:Literal["automatic","parallel","claude_first","chatgpt_first"]="automatic"
 class ResultIn(BaseModel):
  provider:Literal["claude","chatgpt"]
- text:str=Field(min_length=1,max_length=50000)
+ text:str=Field(default="",max_length=50000)
  error:str|None=None
 @app.get("/",response_class=HTMLResponse)
 async def home():
@@ -123,7 +123,8 @@ async def extension_result(tid:str,body:ResultIn,x_agent_token:str|None=Header(d
  d=read_db()
  for item in d["tasks"]:
   if item["id"]==tid:
-   if body.error:
+   if body.error or not body.text.strip():
+    body.error = body.error or "Le modèle heeft geen tekstueel antwoord teruggegeven."
     item[body.provider+"_status"]="FAILED";item["error"]=body.provider+": "+body.error;item["status"]="FAILED"
    else:
     item["results"][ "synthesis" if item.get("status")=="SYNTHESIS" else body.provider]=body.text
