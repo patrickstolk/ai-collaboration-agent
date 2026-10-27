@@ -43,6 +43,17 @@
         <article class="stat-card"><div class="stat-top"><span class="stat-label">MISLUKT</span><span class="stat-icon icon-red">!</span></div><div class="stat-value" id="failedCount">—</div><div class="stat-foot">Opdrachten met een fout</div></article>
       </section>
 
+      <section class="panel status-panel" id="system-status">
+        <div class="panel-heading status-heading"><div><div class="eyebrow">SYSTEEMCONTROLE</div><h2>Live status</h2><p>Controleert de agent-server en de officiële statuspagina's van Claude en OpenAI.</p></div><div class="status-controls"><span id="statusCheckedAt">Nog niet gecontroleerd</span><button class="button button-quiet" id="statusRefreshBtn" type="button">Nu controleren ↻</button></div></div>
+        <div class="status-grid">
+          <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="serverStatusDot"></span>Agent-server</span><span class="status-value" id="serverStatusText">Controleren…</span></div><p id="serverStatusDetail">Lokale API controleren.</p></article>
+          <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="claudeStatusDot"></span>Claude</span><span class="status-value" id="claudeStatusText">Controleren…</span></div><p id="claudeStatusDetail">Officiële status van claude.ai.</p><a href="https://status.claude.com/" target="_blank" rel="noreferrer">Open statuspagina ↗</a></article>
+          <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="chatgptStatusDot"></span>ChatGPT</span><span class="status-value" id="chatgptStatusText">Controleren…</span></div><p id="chatgptStatusDetail">Officiële status van OpenAI.</p><a href="https://status.openai.com/" target="_blank" rel="noreferrer">Open statuspagina ↗</a></article>
+          <article class="service-status"><div class="service-status-top"><span class="service-name"><span class="service-dot unknown" id="extensionStatusDot"></span>Browserextensie</span><span class="status-value" id="extensionStatusText">Niet gemeten</span></div><p id="extensionStatusDetail">De server kan de extensie nog niet rechtstreeks controleren.</p></article>
+        </div>
+        <p class="status-disclaimer">Let op: de officiële status toont storingen bij de aanbieder, niet of jouw persoonlijke browsersessie is ingelogd of werkt. De extensiestatus blijft onbekend totdat heartbeat-controle is ingebouwd.</p>
+      </section>
+
       <section class="workspace-grid">
         <article class="panel composer-panel" id="new-task">
           <div class="panel-heading"><div><div class="eyebrow">START SAMENWERKING</div><h2>Nieuwe opdracht</h2><p>Beschrijf het doel. De agents werken vanuit je ingelogde browsertabbladen.</p></div><span class="step-number">01</span></div>
