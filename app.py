@@ -1,122 +1,116 @@
-import os, asyncio, json, uuid
-from datetime import datetime, timezone
+import os,asyncio,json,uuid,secrets
+from datetime import datetime,timezone
 from typing import Literal
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI,HTTPException,WebSocket,WebSocketDisconnect,Header
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel,Field
 from dotenv import load_dotenv
-from browser_agent import BrowserAgent
-
 load_dotenv()
 DB=os.getenv("DB_PATH","/data/browser-agent.json")
-agent=BrowserAgent()
+AGENT_TOKEN=os.getenv("AGENT_TOKEN","please-change-this-token")
 app=FastAPI(title="AI Collaboration Agent")
 app.mount("/static",StaticFiles(directory="static"),name="static")
 clients=set()
 def now(): return datetime.now(timezone.utc).isoformat()
 def read_db():
-    os.makedirs(os.path.dirname(DB) or ".",exist_ok=True)
-    if not os.path.exists(DB):
-        with open(DB,"w") as f: json.dump({"tasks":[]},f)
-    with open(DB,encoding="utf-8") as f: return json.load(f)
+ os.makedirs(os.path.dirname(DB) or ".",exist_ok=True)
+ if not os.path.exists(DB):
+  with open(DB,"w") as f: json.dump({"tasks":[]},f)
+ with open(DB,encoding="utf-8") as f:return json.load(f)
 def write_db(d):
-    with open(DB+".tmp","w",encoding="utf-8") as f: json.dump(d,f,ensure_ascii=False,indent=2)
-    os.replace(DB+".tmp",DB)
-def get_task(tid): return next((t for t in read_db()["tasks"] if t["id"]==tid),None)
+ with open(DB+".tmp","w",encoding="utf-8") as f:json.dump(d,f,ensure_ascii=False,indent=2)
+ os.replace(DB+".tmp",DB)
+def get_task(tid):return next((t for t in read_db()["tasks"] if t["id"]==tid),None)
 def update(tid,**kw):
-    d=read_db()
-    for t in d["tasks"]:
-        if t["id"]==tid: t.update(kw); t["updated_at"]=now(); break
-    write_db(d)
+ d=read_db()
+ for t in d["tasks"]:
+  if t["id"]==tid:t.update(kw);t["updated_at"]=now();break
+ write_db(d)
 async def broadcast(msg):
-    for ws in list(clients):
-        try: await ws.send_json(msg)
-        except Exception: clients.discard(ws)
+ for ws in list(clients):
+  try:await ws.send_json(msg)
+  except Exception:clients.discard(ws)
 async def log(tid,msg,actor="orchestrator"):
-    d=read_db()
-    for t in d["tasks"]:
-        if t["id"]==tid:
-            t["events"].append({"at":now(),"actor":actor,"message":msg})
-            t["updated_at"]=now()
-            break
-    write_db(d)
-    await broadcast({"type":"update","task_id":tid})
+ d=read_db()
+ for t in d["tasks"]:
+  if t["id"]==tid:t["events"].append({"at":now(),"actor":actor,"message":msg});t["updated_at"]=now();break
+ write_db(d);await broadcast({"type":"update","task_id":tid})
+def auth(token):
+ if not secrets.compare_digest(token or "",AGENT_TOKEN):raise HTTPException(401,"Ongeldige agent-token")
 class TaskIn(BaseModel):
-    prompt:str=Field(min_length=3,max_length=15000)
-    mode:Literal["automatic","parallel","claude_first","chatgpt_first"]="automatic"
-class LoginIn(BaseModel):
-    provider:Literal["claude","chatgpt"]
+ prompt:str=Field(min_length=3,max_length=15000)
+ mode:Literal["automatic","parallel","claude_first","chatgpt_first"]="automatic"
+class ResultIn(BaseModel):
+ provider:Literal["claude","chatgpt"]
+ text:str=Field(min_length=1,max_length=50000)
+ error:str|None=None
 @app.get("/",response_class=HTMLResponse)
 async def home():
-    with open("static/index.html",encoding="utf-8") as f: return f.read()
+ with open("static/index.html",encoding="utf-8") as f:return f.read()
 @app.get("/api/health")
-async def health(): return {"status":"ok"}
+async def health():return {"status":"ok","mode":"local-browser-extension"}
 @app.get("/api/tasks")
-async def tasks(): return sorted(read_db()["tasks"],key=lambda t:t["created_at"],reverse=True)[:100]
+async def tasks():return sorted(read_db()["tasks"],key=lambda t:t["created_at"],reverse=True)[:100]
 @app.get("/api/tasks/{tid}")
 async def detail(tid):
-    t=get_task(tid)
-    if not t: raise HTTPException(404,"Taak niet gevonden")
-    return t
-@app.get("/api/browser-status")
-async def browser_status(): return await agent.status()
-@app.post("/api/browser/open")
-async def browser_open():
-    await agent.start()
-    return {"ok":True,"message":"Browser gestart"}
-@app.post("/api/browser/check")
-async def browser_check(body:LoginIn): return await agent.check_login(body.provider)
+ t=get_task(tid)
+ if not t:raise HTTPException(404,"Taak niet gevonden")
+ return t
 @app.post("/api/tasks")
 async def create(body:TaskIn):
-    await agent.start()
-    state=await agent.status()
-    if not all(state[p]["logged_in"] for p in ("claude","chatgpt")):
-        raise HTTPException(409,"Log eerst handmatig in op beide websites via Browserbeeld.")
-    tid=str(uuid.uuid4())
-    t={"id":tid,"prompt":body.prompt,"mode":body.mode,"status":"QUEUED","created_at":now(),"updated_at":now(),"claude_status":"IDLE","chatgpt_status":"IDLE","result":None,"error":None,"events":[]}
-    d=read_db(); d["tasks"].append(t); write_db(d)
-    await log(tid,"Opdracht ontvangen","user")
-    asyncio.create_task(run_task(tid))
-    return get_task(tid)
-async def run_task(tid):
-    t=get_task(tid); prompt=t["prompt"]; mode=t["mode"]
-    try:
-        update(tid,status="RUNNING"); await log(tid,"Opdracht gestart")
-        if mode=="claude_first":
-            update(tid,claude_status="RUNNING",chatgpt_status="WAITING")
-            c=await agent.ask("claude",prompt)
-            update(tid,claude_status="COMPLETED",chatgpt_status="RUNNING")
-            final=await agent.ask("chatgpt","Controleer en verbeter dit antwoord. Opdracht:\n"+prompt+"\nAntwoord Claude:\n"+c)
-            update(tid,chatgpt_status="COMPLETED")
-        elif mode=="chatgpt_first":
-            update(tid,chatgpt_status="RUNNING",claude_status="WAITING")
-            g=await agent.ask("chatgpt",prompt)
-            update(tid,chatgpt_status="COMPLETED",claude_status="RUNNING")
-            final=await agent.ask("claude","Controleer en verbeter dit antwoord. Opdracht:\n"+prompt+"\nAntwoord ChatGPT:\n"+g)
-            update(tid,claude_status="COMPLETED")
-        else:
-            update(tid,claude_status="RUNNING",chatgpt_status="RUNNING")
-            results=await asyncio.gather(agent.ask("claude",prompt),agent.ask("chatgpt",prompt),return_exceptions=True)
-            c=results[0] if not isinstance(results[0],Exception) else "[Claude-fout: "+str(results[0])+"]"
-            g=results[1] if not isinstance(results[1],Exception) else "[ChatGPT-fout: "+str(results[1])+"]"
-            update(tid,claude_status="FAILED" if c.startswith("[Claude-fout") else "COMPLETED",chatgpt_status="FAILED" if g.startswith("[ChatGPT-fout") else "COMPLETED")
-            if c.startswith("[Claude-fout") and g.startswith("[ChatGPT-fout"): raise RuntimeError(c+"; "+g)
-            try:
-                final=await agent.ask("chatgpt","Combineer de antwoorden tot één eindresultaat en benoem relevante verschillen.\nOPDRACHT:\n"+prompt+"\nCLAUDE:\n"+c+"\nCHATGPT:\n"+g) if not g.startswith("[ChatGPT-fout") else "Claude:\n"+c+"\nChatGPT:\n"+g
-            except Exception: final="Claude:\n"+c+"\nChatGPT:\n"+g
-        update(tid,status="COMPLETED",result=final)
-        await log(tid,"Opdracht afgerond")
-        await broadcast({"type":"completed","task_id":tid})
-    except Exception as e:
-        update(tid,status="FAILED",error=str(e))
-        await log(tid,"Opdracht mislukt: "+str(e))
-        await broadcast({"type":"failed","task_id":tid})
+ tid=str(uuid.uuid4());t={"id":tid,"prompt":body.prompt,"mode":body.mode,"status":"QUEUED","created_at":now(),"updated_at":now(),"claude_status":"QUEUED","chatgpt_status":"QUEUED","results":{},"result":None,"error":None,"events":[],"next_provider":"claude"}
+ d=read_db();d["tasks"].append(t);write_db(d);await log(tid,"Opdracht in wachtrij; lokale browserextensie voert deze uit.","user");return get_task(tid)
+@app.get("/api/extension/next")
+async def extension_next(x_agent_token:str|None=Header(default=None)):
+ auth(x_agent_token)
+ d=read_db()
+ for t in d["tasks"]:
+  if t["status"] not in ("QUEUED","RUNNING"):continue
+  mode=t["mode"];results=t.get("results",{})
+  needed=["claude","chatgpt"]
+  if mode=="claude_first":needed=["claude","chatgpt"]
+  elif mode=="chatgpt_first":needed=["chatgpt","claude"]
+  remaining=[p for p in needed if p not in results]
+  if not remaining:
+   if mode in ("automatic","parallel") and "synthesis" not in results:
+    t["status"]="SYNTHESIS";t["next_provider"]="chatgpt";t["updated_at"]=now();write_db(d)
+    return {"task_id":t["id"],"provider":"chatgpt","prompt":"Maak een eindantwoord op basis van de opdracht en beide antwoorden. Benoem relevante verschillen en verzin geen feiten.\nOPDRACHT:\n"+t["prompt"]+"\nCLAUDE:\n"+results["claude"]+"\nCHATGPT:\n"+results["chatgpt"],"stage":"synthesis"}
+   t["status"]="COMPLETED";t["result"]=results.get("synthesis") or results.get(needed[-1]) or results.get(needed[0]);t["updated_at"]=now();write_db(d);continue
+  provider=remaining[0];t["status"]="RUNNING";t[provider+"_status"]="RUNNING";t["updated_at"]=now();write_db(d)
+  prompt=t["prompt"]
+  if len(results):
+   previous=next(iter(results.values()))
+   prompt=("Controleer en verbeter het eerdere antwoord. Opdracht:\n"+t["prompt"]+"\nEerder antwoord:\n"+previous) if mode in ("claude_first","chatgpt_first") else prompt
+  return {"task_id":t["id"],"provider":provider,"prompt":prompt,"stage":"answer"}
+ return {"task_id":None}
+@app.post("/api/extension/result/{tid}")
+async def extension_result(tid:str,body:ResultIn,x_agent_token:str|None=Header(default=None)):
+ auth(x_agent_token);t=get_task(tid)
+ if not t:raise HTTPException(404,"Taak niet gevonden")
+ d=read_db()
+ for item in d["tasks"]:
+  if item["id"]==tid:
+   if body.error:
+    item[body.provider+"_status"]="FAILED";item["error"]=body.provider+": "+body.error;item["status"]="FAILED"
+   else:
+    item["results"][ "synthesis" if item.get("status")=="SYNTHESIS" else body.provider]=body.text
+    item[body.provider+"_status"]="COMPLETED"
+    if item["mode"] in ("claude_first","chatgpt_first") and len(item["results"])>=2:
+     item["status"]="COMPLETED";item["result"]=body.text
+    elif item["mode"]=="parallel" and len(item["results"])>=2:
+     item["status"]="RUNNING"
+    elif item["mode"]=="automatic" and len(item["results"])>=2:
+     item["status"]="RUNNING"
+   item["updated_at"]=now();item["events"].append({"at":now(),"actor":body.provider,"message":"Antwoord ontvangen." if not body.error else "Fout: "+body.error})
+   break
+ write_db(d);await broadcast({"type":"update","task_id":tid})
+ if get_task(tid)["status"]=="COMPLETED":await broadcast({"type":"completed","task_id":tid})
+ if get_task(tid)["status"]=="FAILED":await broadcast({"type":"failed","task_id":tid})
+ return get_task(tid)
 @app.websocket("/ws")
 async def ws(ws:WebSocket):
-    await ws.accept(); clients.add(ws)
-    try:
-        while True: await ws.receive_text()
-    except WebSocketDisconnect: clients.discard(ws)
-@app.on_event("shutdown")
-async def shutdown(): await agent.close()
+ await ws.accept();clients.add(ws)
+ try:
+  while True:await ws.receive_text()
+ except WebSocketDisconnect:clients.discard(ws)
